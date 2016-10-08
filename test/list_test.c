@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "dllist.h"
+#include "dllistx.h"
 #include "minunit.h"
 
 static dllist* list = NULL;
@@ -25,7 +26,6 @@ mu_test(list_alloc_test){
     mu_assert(list != NULL, "dllist is null.");
     mu_assert(list->head == NULL, "dllist does not nullify head pointer");
     mu_assert(list->tail == NULL, "dllist does not nullify tail pointer");
-    mu_assert(list->length == 0, "dllist length is not zero"); 
     return NULL;
 }
 
@@ -84,7 +84,7 @@ mu_test(list_free_test){
     return NULL;
 }
 
-mu_suite(list_suite)
+mu_suite(dllist_suite)
 {
     mu_run_test(list_alloc_test);
     mu_run_test(add_get_test);

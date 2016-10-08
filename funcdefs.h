@@ -1,14 +1,12 @@
 #ifndef FUNCDEFS_H
 #define FUNCDEFS_H
 
+#include <stdbool.h>
 // Void pointer tools
-typedef void (*fn)(void*) fn_in_trans;
-typedef fn_in_trans fn_free;
-typedef int (*fn)(void*,void*) fn_cmp;
-typedef bool (*fn)(void*) fn_pred;
+typedef int (*fn_cmp)(void*,void*);
+typedef bool (*fn_pred)(void*);
 
 // Generic function to transform a type to itself
-#define fn_trans(type) type (*fn)(type)
-typedef fn_trans(void*) vp_trans;
+typedef void (*fn_free)(void*);
 
 #endif /* end of include guard: FUNCDEFS_H */

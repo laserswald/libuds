@@ -11,7 +11,7 @@ darr* darr_new(int ispace, size_t datasize){
     return array;
 }
 
-darr* darr_init(darr* array, int ispace, size_t datasize){
+void darr_init(darr* array, int ispace, size_t datasize){
     array->space = ispace;
     array->data_size = datasize;
     array->arr = calloc(ispace, datasize);

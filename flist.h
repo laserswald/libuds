@@ -10,6 +10,4 @@ struct flist_##type { \
 
 #define flist(type) struct flist_ ## type
 
-#define
-
 #endif /* end of include guard: FLIST_H */

@@ -6,14 +6,44 @@
 #include "stdlib.h"
 #include "dllist.h"
 
-
-static struct dlnode* listnode_new(void* item){
+// Basic node operations.
+static struct dlnode* dlnode_new(void* item){
     struct dlnode* n = malloc(sizeof(struct dlnode));
     n->prev = NULL;
     n->next = NULL;
     n->data = item;
     return n;
 }
+
+int dlnode_free(struct dlnode *target){
+    free(target);
+    return 0;
+}
+
+// Connect two dlnodes in a specific order
+void dlnode_connect(struct dlnode *first, struct dlnode *second){
+    if (first != NULL) first->next = second;
+    if (second != NULL) second->prev = first;
+}
+
+// Disconnect a node from it's neighbors
+void dlnode_disconnect(struct dlnode *node){
+    if (!node) return;
+
+    // Neighbors no longer know about this one.
+    if (node->next){
+        node->next->prev = NULL;
+    }
+    if (node->prev){
+        node->prev->next = NULL;
+    }
+
+    // This node no longer knows about it's neighbors
+    node->prev = NULL;
+    node->next = NULL;
+}
+
+/// List operations. Should just be basic wrappers around the node operations.
 
 dllist* dllist_new(){
     dllist* this = (dllist*)malloc(sizeof(dllist));
@@ -23,11 +53,21 @@ dllist* dllist_new(){
     return this;
 }
 
+// Destroys the linked list.
+void dllist_free(dllist* list)
+{
+    if (!list) return;
 
-int destroy_node(struct dlnode* target){
-    free(target);
-    return 0;
+    struct dlnode* index = list->head;
+    struct dlnode* previous = NULL;
+    while (index){
+        previous = index;
+        index = index->next;
+        free(previous);
+    }
+
 }
+
 
 int dllist_append(dllist* l, void* item){
     if (!l) { 
@@ -35,27 +75,20 @@ int dllist_append(dllist* l, void* item){
         return 1;
     }
 
-    struct dlnode* elem = listnode_new(item);
+    struct dlnode* elem = dlnode_new(item);
     if (!elem) {
         puts("element could not be created: no more memory");
     }
 
     // No head of list, there is no list.
-    if (l->head == NULL && l->tail == NULL){
+    if (dllist_isempty(l)){
         l->head = elem;
         l->tail = elem;
     } else {
-        l->tail->next = elem;
-        elem->prev = l->tail;
+        dlnode_connect(l->tail, elem);
         l->tail = elem;
     }
-
-    l->length = l->length + 1;
     return 0;
-
-    error:
-    if (elem) destroy_node(elem);
-    return 1;
 }
 
 int dllist_push(dllist* l, void* item){
@@ -64,79 +97,37 @@ int dllist_push(dllist* l, void* item){
         return 1;
     }
 
-    struct dlnode* elem = listnode_new(item);
+    struct dlnode* elem = dlnode_new(item);
     if (!elem) {
         puts("element could not be created: no more memory");
     }
 
     // No head of list, there is no list.
-    if (l->head == NULL){
-        l->head = elem;
-        l->tail = elem;
+    if (dllist_isempty(l)){
+        l->head = l->tail = elem;
     } else {
-        l->head->prev = elem;
-        elem->next = l->head;
+        dlnode_connect(elem, l->head);
         l->head = elem;
     }
 
-    l->length = l->length + 1;
     return 0;
-
-    error:
-    if (elem) destroy_node(elem);
-    return -1;
-}
-
-int dllist_do(dllist* list, void (*function)(void*)){
-    struct dlnode* current = list->head;
-    while(current != NULL){
-        (*function)(current->data);
-        current = current->next;
-    }
-    return 0;
-}
-
-dllist* dllist_map(dllist* list, void* (*function)(void*)){
-    dllist* newlist = dllist_new();
-    struct dlnode* current = list->head;
-    while(current != NULL){
-        dllist_append(newlist, (*function)(current->data));
-        current = current->next;
-    }
-    return newlist;
-}
-
-dllist* dllist_filter(dllist* list, bool (*fun)(void*)){
-    dllist* newlist = dllist_new();
-    struct dlnode* current = list->head;
-    while(current != NULL){
-        if ((*fun)(current->data)){
-            dllist_append(newlist, current->data);
-        }
-        current = current->next;
-    }
-    return newlist;
 }
 
 void* dllist_pop(dllist* l){
-    //return dllist_remove(list, 0);
-    //TODO: Make sure the list is fine
     if (!l) { 
         puts("list does not exist");
         return NULL;
     }
 
-    // TODO: make sure the head is okay
     struct dlnode* prevHead = l->head;
-    if (prevHead == NULL) goto error;
+    if (prevHead == NULL) return NULL;
     void* data = prevHead->data;
+
     l->head = prevHead->next;
-    if (l->head)
-        l->head->prev = NULL;
-    l->length = l->length - 1;
+
+    dlnode_disconnect(prevHead);
+
     return data;
-error:
-    return NULL;
 }
 
 void* dllist_retrieve(dllist* l){
@@ -149,78 +140,15 @@ void* dllist_retrieve(dllist* l){
 
     // TODO: make sure the head is okay
     struct dlnode* prevTail = l->tail;
-    if (prevTail == NULL) goto error;
+    if (prevTail == NULL) return NULL;
+
     void* data = prevTail->data;
     l->tail = prevTail->prev;
-    if (l->tail)
-        l->tail->next = NULL;
-    l->length = l->length - 1;
+    dlnode_disconnect(prevTail);
+
     return data;
-error:
-    return NULL;
 }
 
 
-dllist* merge(dllist* l, dllist* r, int (*cmp)(void*, void*)){
-    dllist* ret = dllist_new();
-    void *lval = dllist_pop(l);
-    void *rval = dllist_pop(r);
-    while (l->length != 0 || r->length != 0){ 
-        if (lval == NULL && rval == NULL) {
-        } else if (lval == NULL){
-            dllist_append(ret, rval);
-        } else if (rval == NULL){
-            dllist_append(ret, lval);
-        } else {
-            // 
-            int comparison = cmp(lval, rval);
-            if (comparison < 0){
-                dllist_append(ret, lval);
-                dllist_push(r, rval);
-            } else {
-                dllist_append(ret, rval);
-                dllist_push(l, lval);
-            }
-        }
-    }
-    return ret;
-}
 
-// Mergesort! 
-dllist* dllist_sort(dllist* list, int (*cmp)(void*, void*)){
-    // Choose the center value.
-    if (list == NULL) return NULL;
-    if (list->length == 0) return NULL; 
-    if (list->length == 1) return list;
-    int middle = list->length / 2;
-    dllist *left = dllist_new();
-    dllist *right = dllist_new();
-    struct dlnode* ln = list->head;
-    int i = 0;
-    while(ln != NULL){
-        if(i < middle) dllist_append(left, ln->data); 
-        else if (i >= middle) dllist_append(right, ln->data);
-        i++;
-        ln = ln->next;
-    }
-    left = dllist_sort(left, cmp);
-    right = dllist_sort(right, cmp);
-    return merge(left, right, cmp);
-}
-
-
-// Destroys the linked list.
-int dllist_free(dllist* list)
-{
-    if (!list) return -1;
-    
-    struct dlnode* index = list->head;
-    struct dlnode* previous = NULL;
-    while (index){
-        previous = index;
-        index = index->next;
-        free(previous);
-    }
-    return 0;
-}
 

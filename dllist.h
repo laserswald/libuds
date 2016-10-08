@@ -2,7 +2,6 @@
 #ifndef __MINLLIST__
 #define __MINLLIST__
 
-#include <stdbool.h>
 #include "funcdefs.h"
 
 struct dlnode{
@@ -14,12 +13,11 @@ struct dlnode{
 typedef struct dllist {
     struct dlnode* head;
     struct dlnode* tail;
-    int length;
 }dllist;
 
 struct dllist* dllist_new(void);
 
-int dllist_free(dllist*);
+void dllist_free(dllist*);
 
 // Adds to the back of a list.
 int dllist_append(dllist*, void*);
@@ -33,13 +31,6 @@ int dllist_push(dllist*, void*);
 // Removes the first element from the list.
 void* dllist_pop(dllist*);
 
-dllist* dllist_map(dllist* list, vp_trans);
-
-dllist* dllist_filter(dllist* list, fn_p);
-
-int dllist_do(dllist*, );
-
-// Merge sorts the list with the given comparison function.
-struct dllist* dllist_sort(dllist*, fn_cmp);
+#define dllist_isempty(list) ((list)->head == NULL && (list)->tail == NULL)
 
 #endif//LLIST

@@ -1,18 +1,24 @@
 CC=clang
-CFLAGS= -g --std=c11
-tests=
+CFLAGS= -g --std=c11 -I.
 
-mindata_test: ${tests} libuds.a
-	gcc -o $@ ${tests} -L. -lmindata
+SRCS=$(wildcard *.c)
+TESTS=$(wildcard test/*.c)
+OBJS=$(patsubst %.c,%.o,$(SRCS))
+TESTOBJ=$(patsubst %.c,%.o,$(TESTS))
 
-all: libmindata.a test
+all: libuds.a test
 
-libuds.a: vector.o dllist.o
-	ar rcs libmindata.a $^
+uds_test: $(TESTOBJ) libuds.a
+	$(CC) -o $@ $^
+
+libuds.a: $(OBJS)
+	ar rcs $@ $^
 
 clean: 
 	rm *.o
 	rm *.a
 
-test: mindata_test
-	exec mindata_test
+test: uds_test
+	exec uds_test
+
+.PHONY: clean test 
